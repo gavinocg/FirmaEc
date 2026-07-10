@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Firma Digital Ecuador</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 40px 0;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 25px;
+            text-align: center;
+        }
+        .btn-firmar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-firmar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-firmar:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+        }
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .alert {
+            border-radius: 10px;
+        }
+        #pdfViewer {
+            width: 100%;
+            height: 70vh;
+            overflow: auto;
+            background: #525659;
+            cursor: crosshair;
+            position: relative;
+        }
+        #pdfCanvas {
+            position: relative;
+            z-index: 1;
+        }
+        #pdfCanvas {
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .signature-rect {
+            position: absolute;
+            border: 2px solid #e74c3c;
+            background: rgba(231, 76, 60, 0.2);
+            pointer-events: none;
+            display: none;
+            z-index: 100;
+            transform: translate(0, 0);
+        }
+        .signature-rect::before {
+            content: attr(data-label);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .placed-signature {
+            position: absolute;
+            border: 2px solid #e74c3c;
+            background: rgba(231, 76, 60, 0.15);
+            z-index: 50;
+            pointer-events: none;
+        }
+        .placed-signature::before {
+            content: attr(data-label);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .page-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            flex-wrap: wrap;
+        }
+        .debug-field {
+            background: #2d2d2d;
+            color: #00ff00;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+        }
+        .cursor-coords {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.85);
+            color: #00ff00;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 10000;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="mb-0"><i class="bi bi-file-earmark-check"></i> Firma Digital de Documentos PDF</h2>
+                        <p class="mb-0 mt-2">Demo - República del Ecuador</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <form id="firmaForm" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="pdfFile" class="form-label fw-bold">
+                                    <i class="bi bi-file-pdf"></i> Seleccionar Archivo PDF
+                                </label>
+                                <input type="file" class="form-control" id="pdfFile" name="file" 
+                                       accept=".pdf" required onchange="loadPDFFile(this)">
+                                <div class="form-text">Seleccione el documento a firmar</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="certFile" class="form-label fw-bold">
+                                    <i class="bi bi-file-earmark-lock"></i> Certificado (.p12)
+                                </label>
+                                <input type="file" class="form-control" id="certFile" name="certificate" 
+                                       accept=".p12,.pfx" required>
+                                <div class="form-text">Archivo de certificado de firma digital</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password" class="form-label fw-bold">
+                                    <i class="bi bi-key"></i> Contraseña del Certificado
+                                </label>
+                                <input type="password" class="form-control" id="password" 
+                                       name="password" required>
+                                <div class="form-text">Ingrese la clave de su certificado</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-qr-code"></i> Tipo de Estampado
+                                </label>
+                                <select class="form-select" id="typeSignature" name="typeSignature">
+                                    <option value="QR" selected>QR - Código QR con información de la firma</option>
+                                    <option value="information1">Información 1 - Nombre del firmante y fecha</option>
+                                    <option value="information2">Información 2 - Información completa del certificado</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="signingReason" class="form-label fw-bold">Motivo de la firma</label>
+                                <input type="text" class="form-control" id="signingReason" name="signingReason" 
+                                       value="Firma digital de documento">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="signingLocation" class="form-label fw-bold">Ubicación</label>
+                                <input type="text" class="form-control" id="signingLocation" name="signingLocation" 
+                                       value="Ecuador">
+                            </div>
+                            
+                            <input type="hidden" id="posX" name="posX" value="50">
+                            <input type="hidden" id="posY" name="posY" value="50">
+                            <input type="hidden" id="signingPage" name="signingPage" value="1">
+                            <input type="hidden" id="width" name="width" value="120">
+                            <input type="hidden" id="height" name="height" value="40">
+                            <input type="hidden" id="additionalPositions" name="additionalPositions" value="">
+                            
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-primary btn-firmar text-white" id="btnPreview" onclick="openPdfModal()">
+                                    <i class="bi bi-geo-alt"></i> Seleccionar posición de la firma
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div id="alertContainer" class="mt-3" style="display: none;"></div>
+                        
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <h6 class="fw-bold text-muted"><i class="bi bi-info-circle"></i> Instrucciones:</h6>
+                            <ol class="small text-muted mb-0">
+                                <li>Seleccione el archivo PDF a firmar</li>
+                                <li>Cargue su certificado (.p12) e ingrese la contraseña</li>
+                                <li>Seleccione el tipo de estampado (QR o Información)</li>
+                                <li>Haga clic en "Seleccionar posición de la firma"</li>
+                                <li>En la ventana previa, haga clic donde desea posicionar el QR/información</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4 text-white">
+                    <small>Demo de Firma Digital - Ecuador</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="pdfModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-lg-down">
+            <div class="modal-content" style="height: 90vh;">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-cursor-fill"></i> Seleccione la posición de la firma</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="closeModal()"></button>
+                </div>
+                <div class="page-nav">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="changePage(-1)">
+                        <i class="bi bi-chevron-left"></i> Anterior
+                    </button>
+                    <span>Página <span id="currentPage">1</span> de <span id="totalPages">-</span></span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="changePage(1)">
+                        Siguiente <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <span class="ms-3 text-muted">|</span>
+                    <span class="ms-2"><strong>X:</strong> <span id="debugX" class="debug-field">0</span></span>
+                    <span class="ms-2"><strong>Y:</strong> <span id="debugY" class="debug-field">0</span></span>
+                    <span class="ms-2"><strong>Página:</strong> <span id="debugPage" class="debug-field">1</span></span>
+                    <span class="ms-3 text-muted">|</span>
+                    <span class="ms-3" id="positionDisplay">Haga clic en el documento para posicionar la firma</span>
+                    <button class="btn btn-sm btn-warning ms-2" id="btnAddMore" onclick="addMoreSignatures()" disabled>
+                        <i class="bi bi-plus-lg"></i> Agregar otra firma
+                    </button>
+                    <button class="btn btn-sm btn-success ms-2" id="btnConfirm" onclick="confirmPosition()" disabled>
+                        <i class="bi bi-check-lg"></i> Confirmar y Firmar (<span id="signatureCount">0</span>)
+                    </button>
+                </div>
+                <div class="modal-body p-0" id="pdfViewer">
+                    <canvas id="pdfCanvas"></canvas>
+                    <div id="signatureRect" class="signature-rect"></div>
+                    <div id="cursorCoords" class="cursor-coords" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let pdfDoc = null;
+        let currentPage = 1;
+        let pdfData = null;
+        let selectedCoords = null;
+        let pdfModal = null;
+        let canvas = null;
+        let canvasContainer = null;
+        let scale = 1.5;
+        const fixedPdfWidth = 120;
+        const fixedPdfHeight = 40;
+        let isDraggingRect = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+        let signaturePositions = [];
+
+        function updatePositionDisplay() {
+            const count = signaturePositions.length;
+            document.getElementById('signatureCount').textContent = count;
+            if (count === 0) {
+                document.getElementById('positionDisplay').innerHTML = 'Haga <strong>clic en el documento</strong> para posicionar la firma';
+            } else {
+                document.getElementById('positionDisplay').innerHTML = '<strong class="text-success">✓ ' + count + ' firma(s) posicionada(s)</strong>';
+            }
+        }
+
+        function addMoreSignatures() {
+            if (!selectedCoords) {
+                showAlert('warning', 'Seleccione una posición en el documento primero');
+                return;
+            }
+            
+            // Add current position
+            signaturePositions.push({...selectedCoords});
+            updatePositionDisplay();
+            
+            // Create permanent visual marker
+            const pxWidth = Math.round(fixedPdfWidth * scale);
+            const pxHeight = Math.round(fixedPdfHeight * scale);
+            const num = signaturePositions.length;
+            
+            const marker = document.createElement('div');
+            marker.className = 'placed-signature';
+            marker.style.left = signatureRect.style.left;
+            marker.style.top = signatureRect.style.top;
+            marker.style.width = pxWidth + 'px';
+            marker.style.height = pxHeight + 'px';
+            marker.style.display = 'block';
+            marker.setAttribute('data-label', 'FIRMA ' + num);
+            
+            document.getElementById('pdfViewer').appendChild(marker);
+            
+            // Prepare for next signature
+            selectedCoords = null;
+            currentDragPos = null;
+            
+            // Update label for next signature and keep buttons enabled
+            const nextNum = signaturePositions.length + 1;
+            signatureRect.setAttribute('data-label', 'FIRMA ' + nextNum);
+            
+            // Keep rect visible and enable buttons for next positioning
+            document.getElementById('btnConfirm').disabled = false;
+            document.getElementById('btnAddMore').disabled = false;
+            updatePositionDisplay();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            pdfModal = new bootstrap.Modal(document.getElementById('pdfModal'));
+            canvas = document.getElementById('pdfCanvas');
+            canvasContainer = document.getElementById('pdfViewer');
+
+            const signatureRect = document.getElementById('signatureRect');
+
+            let currentDragPos = null;
+
+            function setSelectedRect(pdfX, pdfY, page, rectLeft, rectTop) {
+                selectedCoords = {
+                    x: pdfX,
+                    y: pdfY,
+                    page: page,
+                    width: fixedPdfWidth,
+                    height: fixedPdfHeight
+                };
+                currentDragPos = { pdfX, pdfY, page, rectLeft, rectTop };
+            }
+
+            function addSignaturePosition() {
+                if (!currentDragPos) return;
+                signaturePositions.push({...selectedCoords});
+                updatePositionDisplay();
+                
+                // Create permanent visual marker
+                const pxWidth = Math.round(fixedPdfWidth * scale);
+                const pxHeight = Math.round(fixedPdfHeight * scale);
+                const num = signaturePositions.length;
+                
+                const marker = document.createElement('div');
+                marker.className = 'placed-signature';
+                marker.style.left = currentDragPos.rectLeft + 'px';
+                marker.style.top = currentDragPos.rectTop + 'px';
+                marker.style.width = pxWidth + 'px';
+                marker.style.height = pxHeight + 'px';
+                marker.style.display = 'block';
+                marker.setAttribute('data-label', 'FIRMA ' + num);
+                
+                document.getElementById('pdfViewer').appendChild(marker);
+                
+                currentDragPos = null;
+            }
+
+            canvas.addEventListener('mousedown', function(event) {
+                const rect = canvas.getBoundingClientRect();
+                const clickX = event.clientX - rect.left;
+                const clickY = event.clientY - rect.top;
+                const rectLeft = parseFloat(signatureRect.style.left || '0');
+                const rectTop = parseFloat(signatureRect.style.top || '0');
+                const rectWidth = parseFloat(signatureRect.style.width || '0');
+                const rectHeight = parseFloat(signatureRect.style.height || '0');
+
+                if (signatureRect.style.display === 'block' &&
+                    clickX >= rectLeft && clickX <= rectLeft + rectWidth &&
+                    clickY >= rectTop && clickY <= rectTop + rectHeight) {
+                    isDraggingRect = true;
+                    dragOffsetX = clickX - rectLeft;
+                    dragOffsetY = clickY - rectTop;
+                    event.preventDefault();
+                }
+            });
+
+            canvas.addEventListener('mousemove', function(event) {
+                const rect = canvas.getBoundingClientRect();
+                const cursorX = event.clientX - rect.left;
+                const cursorY = event.clientY - rect.top;
+
+                if (cursorX < 0 || cursorX > rect.width || cursorY < 0 || cursorY > rect.height) {
+                    document.getElementById('cursorCoords').style.display = 'none';
+                    return;
+                }
+
+                const pdfX = Math.round(cursorX / scale);
+                const pdfY = Math.round((rect.height / scale) - (cursorY / scale));
+                document.getElementById('debugX').textContent = pdfX;
+                document.getElementById('debugY').textContent = pdfY;
+                document.getElementById('debugPage').textContent = currentPage;
+
+                const cursorCoords = document.getElementById('cursorCoords');
+                cursorCoords.innerHTML = `<strong>Página:</strong> ${currentPage}<br>X: ${pdfX}, Y: ${pdfY}`;
+                cursorCoords.style.display = 'block';
+                cursorCoords.style.left = (event.clientX + 20) + 'px';
+                cursorCoords.style.top = (event.clientY - 10) + 'px';
+
+                if (isDraggingRect) {
+                    let newLeft = cursorX - dragOffsetX;
+                    let newTop = cursorY - dragOffsetY;
+                    const pxWidth = Math.round(fixedPdfWidth * scale);
+                    const pxHeight = Math.round(fixedPdfHeight * scale);
+
+                    newLeft = Math.max(0, Math.min(newLeft, rect.width - pxWidth));
+                    newTop = Math.max(0, Math.min(newTop, rect.height - pxHeight));
+
+                    signatureRect.style.left = newLeft + 'px';
+                    signatureRect.style.top = newTop + 'px';
+
+                    const realPdfX = Math.round(newLeft / scale);
+                    const realPdfY = Math.round((rect.height - (newTop + pxHeight)) / scale);
+                    setSelectedRect(realPdfX, realPdfY, currentPage, newLeft, newTop);
+                }
+            });
+
+            canvas.addEventListener('mouseup', function(event) {
+                if (isDraggingRect) {
+                    // Update position after drag ends
+                    const rect = canvas.getBoundingClientRect();
+                    const rectLeft = parseFloat(signatureRect.style.left || '0');
+                    const rectTop = parseFloat(signatureRect.style.top || '0');
+                    const pxWidth = Math.round(fixedPdfWidth * scale);
+                    const pxHeight = Math.round(fixedPdfHeight * scale);
+                    
+                    const finalPdfX = Math.round(rectLeft / scale);
+                    const finalPdfY = Math.round((rect.height - (rectTop + pxHeight)) / scale);
+                    setSelectedRect(finalPdfX, finalPdfY, currentPage, rectLeft, rectTop);
+                    
+                    isDraggingRect = false;
+                    return;
+                }
+
+                const rect = canvas.getBoundingClientRect();
+                const clickX = event.clientX - rect.left;
+                const clickY = event.clientY - rect.top;
+
+                if (clickX < 0 || clickX > rect.width || clickY < 0 || clickY > rect.height) {
+                    return;
+                }
+
+                const pxWidth = Math.round(fixedPdfWidth * scale);
+                const pxHeight = Math.round(fixedPdfHeight * scale);
+                let x1 = clickX;
+                let y2 = clickY;
+                let y1 = clickY - pxHeight;
+
+                if (y1 < 0) {
+                    showAlert('warning', 'No hay suficiente espacio hacia abajo para colocar la firma.');
+                    return;
+                }
+
+                signatureRect.style.display = 'block';
+                signatureRect.style.left = x1 + 'px';
+                signatureRect.style.top = y1 + 'px';
+                signatureRect.style.width = pxWidth + 'px';
+                signatureRect.style.height = pxHeight + 'px';
+                
+                const nextNum = signaturePositions.length + 1;
+                signatureRect.setAttribute('data-label', 'FIRMA ' + nextNum);
+
+                const pdfX = Math.round(x1 / scale);
+                const pdfY = Math.round((rect.height - y1) / scale);
+                setSelectedRect(pdfX, pdfY, currentPage, x1, y1);
+                
+                // Enable buttons after selecting position
+                document.getElementById('btnConfirm').disabled = false;
+                document.getElementById('btnAddMore').disabled = false;
+            });
+
+            canvas.addEventListener('mouseleave', function(event) {
+                document.getElementById('cursorCoords').style.display = 'none';
+            });
+        });
+        
+        function loadPDFFile(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    pdfData = new Uint8Array(e.target.result);
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+        
+        async function openPdfModal() {
+            const pdfFile = document.getElementById('pdfFile').files[0];
+            const certFile = document.getElementById('certFile').files[0];
+            const password = document.getElementById('password').value;
+            
+            if (!pdfFile) {
+                showAlert('warning', 'Por favor seleccione un archivo PDF');
+                return;
+            }
+            
+            if (!certFile) {
+                showAlert('warning', 'Por favor seleccione un certificado');
+                return;
+            }
+            
+            if (!password) {
+                showAlert('warning', 'Por favor ingrese la contraseña del certificado');
+                return;
+            }
+            
+            selectedCoords = null;
+            currentDragPos = null;
+            signaturePositions = [];
+            document.getElementById('signatureRect').style.display = 'none';
+            document.getElementById('positionDisplay').innerHTML = 'Haga <strong>clic en el documento</strong> para posicionar la firma';
+            
+            // Clear placed signature markers
+            const viewer = document.getElementById('pdfViewer');
+            const existingMarkers = viewer.querySelectorAll('.placed-signature');
+            existingMarkers.forEach(marker => marker.remove());
+            document.getElementById('btnConfirm').disabled = true;
+            document.getElementById('btnAddMore').disabled = true;
+            document.getElementById('signatureCount').textContent = '0';
+            currentPage = 1;
+            
+            if (!pdfData) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    pdfData = new Uint8Array(e.target.result);
+                    renderPDF();
+                };
+                reader.readAsArrayBuffer(pdfFile);
+            } else {
+                renderPDF();
+            }
+            
+            pdfModal.show();
+        }
+        
+        async function renderPDF() {
+            try {
+                pdfDoc = await pdfjsLib.getDocument({data: pdfData}).promise;
+                document.getElementById('totalPages').textContent = pdfDoc.numPages;
+                renderPage(currentPage);
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                showAlert('danger', 'Error al cargar el PDF: ' + error.message);
+            }
+        }
+        
+        async function renderPage(num) {
+            if (!pdfDoc) return;
+            
+            const page = await pdfDoc.getPage(num);
+            currentPage = num;
+            
+            document.getElementById('currentPage').textContent = num;
+            
+            const viewport = page.getViewport({scale: scale});
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            const context = canvas.getContext('2d');
+            
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+        }
+        
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= pdfDoc.numPages) {
+                renderPage(newPage);
+            }
+        }
+        
+        function closeModal() {
+            pdfModal.hide();
+        }
+        
+        async function confirmPosition() {
+            if (signaturePositions.length === 0) {
+                showAlert('warning', 'Por favor haga clic en el documento para seleccionar la posición');
+                return;
+            }
+            
+            // Guardar todas las posiciones como JSON
+            document.getElementById('posX').value = signaturePositions[0].x;
+            document.getElementById('posY').value = signaturePositions[0].y;
+            document.getElementById('signingPage').value = signaturePositions[0].page;
+            document.getElementById('width').value = signaturePositions[0].width;
+            document.getElementById('height').value = signaturePositions[0].height;
+            
+            // Guardar posiciones adicionales en campos ocultos
+            let additionalPositions = signaturePositions.slice(1);
+            document.getElementById('additionalPositions').value = JSON.stringify(additionalPositions);
+            
+            pdfModal.hide();
+            
+            await submitForm();
+        }
+        
+        async function submitForm() {
+            const formData = new FormData(document.getElementById('firmaForm'));
+            const btnFirmar = document.getElementById('btnPreview');
+            
+            btnFirmar.disabled = true;
+            btnFirmar.innerHTML = '<span class="loader" style="display:inline-block;"></span> Firmando documento...';
+            
+            try {
+                const response = await fetch('/demo/sign', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'documento_firmado.pdf';
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                        if (filenameMatch && filenameMatch.length > 1) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                    
+                    showAlert('success', '<i class="bi bi-check-circle"></i> Documento firmado y descargado exitosamente');
+                } else {
+                    const errorText = await response.text();
+                    showAlert('danger', errorText || 'Error al firmar el documento');
+                }
+            } catch (error) {
+                showAlert('danger', 'Error de conexión: ' + error.message);
+            } finally {
+                btnFirmar.disabled = false;
+                btnFirmar.innerHTML = '<i class="bi bi-geo-alt"></i> Seleccionar posición de la firma';
+            }
+        }
+        
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            alertContainer.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

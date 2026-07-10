@@ -1,0 +1,950 @@
+/*
+ * Copyright (C) 2020 
+ * Authors: Ricardo Arguello, Misael Fernández
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.*
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package ec.gob.firmadigital.libreria.certificate;
+
+import ec.gob.firmadigital.libreria.certificate.ec.alphatechnologies.CertificadoSubjAlphaTechnologiesImpl;
+import ec.gob.firmadigital.libreria.certificate.ec.alphatechnologies.CertificadoAlphaTechnologiesImpl;
+import ec.gob.firmadigital.libreria.certificate.ec.alphatechnologies.AlphaTechnologiesSubCaCert20242032;
+import ec.gob.firmadigital.libreria.certificate.ec.alphatechnologies.AlphaTechnologiesSubCaCert20232026;
+import java.security.cert.X509Certificate;
+
+import ec.gob.firmadigital.libreria.certificate.ec.CertificadoFuncionarioPublico;
+import ec.gob.firmadigital.libreria.certificate.ec.CertificadoMiembroEmpresa;
+import ec.gob.firmadigital.libreria.certificate.ec.CertificadoPersonaJuridica;
+import ec.gob.firmadigital.libreria.certificate.ec.CertificadoPersonaNatural;
+import ec.gob.firmadigital.libreria.certificate.ec.CertificadoRepresentanteLegal;
+import ec.gob.firmadigital.libreria.certificate.ec.CertificadoSelladoTiempo;
+import ec.gob.firmadigital.libreria.certificate.ec.CertificadoSelloElectronico;
+import ec.gob.firmadigital.libreria.certificate.ec.alphatechnologies.*;
+import ec.gob.firmadigital.libreria.certificate.ec.anfac.*;
+import ec.gob.firmadigital.libreria.certificate.ec.argosdata.*;
+import ec.gob.firmadigital.libreria.certificate.ec.bce.*;
+import ec.gob.firmadigital.libreria.certificate.ec.cj.*;
+import ec.gob.firmadigital.libreria.certificate.ec.corpnewbest.*;
+import ec.gob.firmadigital.libreria.certificate.ec.datil.*;
+import ec.gob.firmadigital.libreria.certificate.ec.digercic.*;
+import ec.gob.firmadigital.libreria.certificate.ec.eclipsoft.*;
+import ec.gob.firmadigital.libreria.certificate.ec.firmasegura.*;
+import ec.gob.firmadigital.libreria.certificate.ec.lazzate.*;
+import ec.gob.firmadigital.libreria.certificate.ec.letmi.CertificadoLetmiFactory;
+import ec.gob.firmadigital.libreria.certificate.ec.letmi.CertificadoSubjLetmiImpl;
+import ec.gob.firmadigital.libreria.certificate.ec.letmi.LetmiSubCaCert20252035;
+import ec.gob.firmadigital.libreria.certificate.ec.appfirmas.CertificadoAppFirmasFactory;
+import ec.gob.firmadigital.libreria.certificate.ec.appfirmas.CertificadoSubjAppFirmasImpl;
+import ec.gob.firmadigital.libreria.certificate.ec.appfirmas.AppFirmasSubCaCert20252050;
+import ec.gob.firmadigital.libreria.certificate.ec.darkcam.CertificadoDarkcamFactory;
+import ec.gob.firmadigital.libreria.certificate.ec.darkcam.CertificadoSubjDarkcamImpl;
+import ec.gob.firmadigital.libreria.certificate.ec.darkcam.DarkcamSubCaCert20262036;
+import ec.gob.firmadigital.libreria.certificate.ec.darkcam.DarkcamSubCaShortCert20262036;
+import ec.gob.firmadigital.libreria.certificate.ec.primecorelat.CertificadoPrimeCoreLat;
+import ec.gob.firmadigital.libreria.certificate.ec.primecorelat.CertificadoPrimeCoreLatDataFactory;
+import ec.gob.firmadigital.libreria.certificate.ec.primecorelat.PrimeCoreLatSubCa1Cert;
+import ec.gob.firmadigital.libreria.certificate.ec.primecorelat.PrimeCoreLatSubCa2Cert;
+import ec.gob.firmadigital.libreria.certificate.ec.securitydata.*;
+import ec.gob.firmadigital.libreria.certificate.ec.uanataca.*;
+import ec.gob.firmadigital.libreria.certificate.to.DatosUsuario;
+import ec.gob.firmadigital.libreria.exceptions.EntidadCertificadoraNoValidaException;
+import ec.gob.firmadigital.libreria.utils.Utils;
+
+/**
+ * Validar diferentes certificados digitales acreditados por ARCOTEL
+ *
+ * @author Misael Fernández
+ */
+public class CertEcUtils {
+
+    public static final String BCE_NAME = "BANCO CENTRAL DEL ECUADOR";
+    public static final String CJ_NAME = "CONSEJO DE LA JUDICATURA";
+    public static final String SECURITYDATA_NAME = "SECURITY DATA";
+    public static final String ANFAC_NAME = "ANFAC";
+    public static final String DIGERCIC_NAME = "DIRECCIÓN GENERAL DE REGISTRO CIVIL, IDENTIFICACIÓN Y CEDULACIÓN";
+    public static final String UANATACA_NAME = "UANATACA S.A.";
+    public static final String ECLIPSOFT_NAME = "ECLIPSOFT S.A.";
+    public static final String DATIL_NAME = "DATILMEDIA S.A.";
+    public static final String AGOSDATA_NAME = "ARGOSDATA CA";
+    public static final String LAZZATE_NAME = "LAZZATE CIA. LTDA";
+    public static final String ALPHATECHNOLOGIES_NAME = "ALPHA TECHNOLOGIES CIA. LTDA.";
+    public static final String CORPNEWBEST_NAME = "CORPNEWBEST CIA. LTDA.";
+    public static final String FIRMASEGURA_NAME = "FIRMASEGURA S.A.S.";
+    public static final String LETMI_NAME = "LETMI ECUADOR S.A.";
+    public static final String APPFIRMAS_NAME = "APPFIRMAS S.A.";
+    public static final String DARKCAM_NAME = "DARKCAM S.A.";
+//    public static final String PRIMECORELAT_NAME = "PRIMECORELAT S.A.S. B.I.C.";
+
+    public static X509Certificate getRootCertificate(X509Certificate certificado) throws EntidadCertificadoraNoValidaException {
+        String entidadCertStr = getNombreCA(certificado);
+
+        switch (entidadCertStr) {
+            case BCE_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new BceSubCaCert20112021())) {
+                        System.out.println("BceSubCaCert 2011-2021");
+                        return new BceSubCaCert20112021();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new BceSubCaCert20192029())) {
+                        System.out.println("BceSubCaCert 2019-2029");
+                        return new BceSubCaCert20192029();
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+            case SECURITYDATA_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new SecurityDataSubCaCert20112026())) {
+                        System.out.println("SecurityDataSubCaCert");
+                        return new SecurityDataSubCaCert20112026();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new SecurityDataSubCaCert20192031())) {
+                        System.out.println("SecurityDataSubCaCert 2019-2031");
+                        return new SecurityDataSubCaCert20192031();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new SecurityDataSubCaCert20202039())) {
+                        System.out.println("SecurityDataSubCaCert 2020-2032");
+                        return new SecurityDataSubCaCert20202039();
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+            case CJ_NAME:
+                return new ConsejoJudicaturaSubCaCert();
+            case ANFAC_NAME:
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new AnfAc18332SubCaCert20162032())) {
+                        System.out.println("Anf 2016-2032");
+                        return new AnfAc18332SubCaCert20162032();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new AnfAc37442SubCaCert20192029())) {
+                        System.out.println("Anf 2019-2029");
+                        return new AnfAc37442SubCaCert20192029();
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            case DIGERCIC_NAME: {
+                return new DigercicSubCaCert20212031();
+            }
+            case UANATACA_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new UanatacaSubCaCert0120162029())) {
+                        System.out.println("Uanataca 2016-2029");
+                        return new UanatacaSubCaCert0120162029();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new UanatacaSubCaCert0220162029())) {
+                        System.out.println("Uanataca 2016-2029");
+                        return new UanatacaSubCaCert0220162029();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new UanatacaSubCaCert0320212034())) {
+                        System.out.println("Uanataca 2021-2034");
+                        return new UanatacaSubCaCert0320212034();
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+            case DATIL_NAME: {
+                return new DatilSubCaCert20212031();
+            }
+            case AGOSDATA_NAME: {
+                return new ArgosDataSubCaCert();
+            }
+            case LAZZATE_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new LazzateSubCaCert())) {
+                        System.out.println("LazzateCA 2022-2037");
+                        return new LazzateSubCaCert();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new LazzateSubCa1Cert())) {
+                        System.out.println("LazzateCA1 2023-2053");
+                        return new LazzateSubCa1Cert();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new LazzateSubCa2Cert())) {
+                        System.out.println("LazzateCA2 2023-2053");
+                        return new LazzateSubCa2Cert();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new LazzateSubCaWeGoCert())) {
+                        System.out.println("LazzateCAWeGo 2023-2053");
+                        return new LazzateSubCaWeGoCert();
+                    }
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+            case CORPNEWBEST_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new CorpNewBestSubCa1_20232033Cert())) {
+                        System.out.println("CorpNewBestSubCa1Cert");
+                        return new CorpNewBestSubCa1_20232033Cert();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new CorpNewBestSubCa2_20232033Cert())) {
+                        System.out.println("CorpNewBestSubCa2Cert");
+                        return new CorpNewBestSubCa2_20232033Cert();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new CorpNewBestSubCa3_20232033Cert())) {
+                        System.out.println("CorpNewBestSubCa3Cert");
+                        return new CorpNewBestSubCa3_20232033Cert();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new CorpNewBestSubCa1_2024011020330619Cert())) {
+                        System.out.println("CorpNewBestSubCa1_2024011020330619Cert");
+                        return new CorpNewBestSubCa1_2024011020330619Cert();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new CorpNewBestSubCa2_2024011020330619Cert())) {
+                        System.out.println("CorpNewBestSubCa2_2024011020330619Cert");
+                        return new CorpNewBestSubCa2_2024011020330619Cert();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new CorpNewBestSubCa3_2024011020330619Cert())) {
+                        System.out.println("CorpNewBestSubCa3_2024011020330619Cert");
+                        return new CorpNewBestSubCa3_2024011020330619Cert();
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+            case ALPHATECHNOLOGIES_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new AlphaTechnologiesSubCaCert20232026())) {
+                        System.out.println("AlphaTechnologiesSubCaCert 2023-2026");
+                        return new AlphaTechnologiesSubCaCert20232026();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new AlphaTechnologiesSubCaCert20242032())) {
+                        System.out.println("AlphaTechnologiesSubCaCert 2024-2032");
+                        return new AlphaTechnologiesSubCaCert20242032();
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+            case FIRMASEGURA_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new FirmaSeguraSubCaCert20232043())) {
+                        System.out.println("FirmaSeguraSubCaCert2023-2043");
+                        return new FirmaSeguraSubCaCert20232043();
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+            case LETMI_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new LetmiSubCaCert20252035())) {
+                        System.out.println("LetmiSubCaCert2025-2035");
+                        return new LetmiSubCaCert20252035();
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+            case APPFIRMAS_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new AppFirmasSubCaCert20252050())) {
+                        System.out.println("AppFirmasSubCaCert2025-2050");
+                        return new AppFirmasSubCaCert20252050();
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+            case DARKCAM_NAME: {
+                try {
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new DarkcamSubCaShortCert20262036())) {
+                        System.out.println("DarkcamSubCaShortCert2026-2036");
+                        return new DarkcamSubCaShortCert20262036();
+                    }
+                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new DarkcamSubCaCert20262036())) {
+                        System.out.println("DarkcamSubCaCert2026-2036");
+                        return new DarkcamSubCaCert20262036();
+
+                    }
+                    return null;
+                } catch (java.security.InvalidKeyException ex) {
+                    //TODO
+                }
+            }
+//            case PRIMECORELAT_NAME: {
+//                try {
+//                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new PrimeCoreLatSubCa1Cert())) {
+//                        System.out.println("PrimeCoreLatCA1 2026-2036");
+//                        return new PrimeCoreLatSubCa1Cert();
+//                    }
+//                    if (ec.gob.firmadigital.libreria.utils.Utils.verifySignature(certificado, new PrimeCoreLatSubCa2Cert())) {
+//                        System.out.println("PrimeCoreLatCA2 2026-2036");
+//                        return new PrimeCoreLatSubCa2Cert();
+//                    }
+//                } catch (java.security.InvalidKeyException ex) {
+//                    //TODO
+//                }
+//            }
+            default:
+                throw new EntidadCertificadoraNoValidaException("Entidad Certificadora no reconocida");
+        }
+    }
+
+    public static String getNombreCA(X509Certificate certificado) {
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(BCE_NAME)) {
+            return BCE_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(SECURITYDATA_NAME)) {
+            return SECURITYDATA_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(CJ_NAME)) {
+            return CJ_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(ANFAC_NAME)) {
+            return ANFAC_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(DIGERCIC_NAME)) {
+            return DIGERCIC_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(UANATACA_NAME)) {
+            return UANATACA_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(DATIL_NAME)) {
+            return DATIL_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(AGOSDATA_NAME)) {
+            return AGOSDATA_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(LAZZATE_NAME)) {
+            return LAZZATE_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(ALPHATECHNOLOGIES_NAME)) {
+            return ALPHATECHNOLOGIES_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(CORPNEWBEST_NAME)) {
+            return CORPNEWBEST_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(FIRMASEGURA_NAME)) {
+            return FIRMASEGURA_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(LETMI_NAME)) {
+            return LETMI_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(APPFIRMAS_NAME)) {
+            return APPFIRMAS_NAME;
+        }
+        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(DARKCAM_NAME)) {
+            return DARKCAM_NAME;
+        }
+//        if (certificado.getIssuerX500Principal().getName().toUpperCase().contains(PRIMECORELAT_NAME)) {
+//            return PRIMECORELAT_NAME;
+//        }
+        return "Entidad no reconocida " + certificado.getIssuerDN().getName();
+    }
+
+    public static DatosUsuario getDatosUsuarios(X509Certificate certificado) throws EntidadCertificadoraNoValidaException {
+        DatosUsuario datosUsuario = new DatosUsuario();
+        if (CertificadoBancoCentralFactory.esCertificadoDelBancoCentral(certificado)) {
+            CertificadoBancoCentral certificadoBancoCentral = CertificadoBancoCentralFactory.construir(certificado);
+            if (certificadoBancoCentral instanceof CertificadoFuncionarioPublico certificadoFuncionarioPublico) {
+                datosUsuario.setCedula(certificadoFuncionarioPublico.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoFuncionarioPublico.getNombres());
+                datosUsuario.setApellido(certificadoFuncionarioPublico.getPrimerApellido() + " "
+                        + certificadoFuncionarioPublico.getSegundoApellido());
+                datosUsuario.setInstitucion(certificadoFuncionarioPublico.getInstitucion());
+                datosUsuario.setCargo(certificadoFuncionarioPublico.getCargo());
+            }
+            if (certificadoBancoCentral instanceof CertificadoMiembroEmpresa certificadoMiembroEmpresa) {
+                datosUsuario.setCedula(certificadoMiembroEmpresa.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoMiembroEmpresa.getNombres());
+                datosUsuario.setApellido(certificadoMiembroEmpresa.getPrimerApellido() + " "
+                        + certificadoMiembroEmpresa.getSegundoApellido());
+                datosUsuario.setCargo(certificadoMiembroEmpresa.getCargo());
+            }
+            if (certificadoBancoCentral instanceof CertificadoPersonaJuridica certificadoPersonaJuridica) {
+                datosUsuario.setCedula(certificadoPersonaJuridica.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaJuridica.getNombres());
+                datosUsuario.setApellido(certificadoPersonaJuridica.getPrimerApellido() + " "
+                        + certificadoPersonaJuridica.getSegundoApellido());
+                datosUsuario.setCargo(certificadoPersonaJuridica.getCargo());
+            }
+            if (certificadoBancoCentral instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+                        + certificadoPersonaNatural.getSegundoApellido());
+            }
+            if (certificadoBancoCentral instanceof CertificadoRepresentanteLegal certificadoRepresentanteLegal) {
+                datosUsuario.setCedula(certificadoRepresentanteLegal.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoRepresentanteLegal.getNombres());
+                datosUsuario.setApellido(certificadoRepresentanteLegal.getPrimerApellido() + " "
+                        + certificadoRepresentanteLegal.getSegundoApellido());
+                datosUsuario.setCargo(certificadoRepresentanteLegal.getCargo());
+            }
+            if (certificadoBancoCentral instanceof CertificadoSelladoTiempo) {
+                datosUsuario.setCertificadoDigitalValido(true);
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoConsejoJudicaturaDataFactory.esCertificadoDelConsejoJudicatura(certificado)) {
+            CertificadoConsejoJudicatura certificadoConsejoJudicatura = CertificadoConsejoJudicaturaDataFactory.construir(certificado);
+            if (certificadoConsejoJudicatura instanceof CertificadoDepartamentoEmpresaConsejoJudicatura certificadoDepartamentoEmpresaConsejoJudicatura) {
+                datosUsuario.setCedula(certificadoDepartamentoEmpresaConsejoJudicatura.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoDepartamentoEmpresaConsejoJudicatura.getNombres());
+                datosUsuario.setApellido(certificadoDepartamentoEmpresaConsejoJudicatura.getPrimerApellido() + " "
+                        + certificadoDepartamentoEmpresaConsejoJudicatura.getSegundoApellido());
+                datosUsuario.setCargo(certificadoDepartamentoEmpresaConsejoJudicatura.getCargo());
+            }
+            if (certificadoConsejoJudicatura instanceof CertificadoEmpresaConsejoJudicatura certificadoEmpresaConsejoJudicatura) {
+                datosUsuario.setCedula(certificadoEmpresaConsejoJudicatura.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoEmpresaConsejoJudicatura.getNombres());
+                datosUsuario.setApellido(certificadoEmpresaConsejoJudicatura.getPrimerApellido() + " "
+                        + certificadoEmpresaConsejoJudicatura.getSegundoApellido());
+                datosUsuario.setCargo(certificadoEmpresaConsejoJudicatura.getCargo());
+            }
+            if (certificadoConsejoJudicatura instanceof CertificadoMiembroEmpresaConsejoJudicatura certificadoMiembroEmpresaConsejoJudicatura) {
+                datosUsuario.setCedula(certificadoMiembroEmpresaConsejoJudicatura.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoMiembroEmpresaConsejoJudicatura.getNombres());
+                datosUsuario.setApellido(certificadoMiembroEmpresaConsejoJudicatura.getPrimerApellido() + " "
+                        + certificadoMiembroEmpresaConsejoJudicatura.getSegundoApellido());
+                datosUsuario.setCargo(certificadoMiembroEmpresaConsejoJudicatura.getCargo());
+            }
+            if (certificadoConsejoJudicatura instanceof CertificadoPersonaJuridicaPrivadaConsejoJudicatura certificadoPersonaJuridicaPrivadaConsejoJudicatura) {
+                datosUsuario.setCedula(certificadoPersonaJuridicaPrivadaConsejoJudicatura.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaJuridicaPrivadaConsejoJudicatura.getNombres());
+                datosUsuario.setApellido(certificadoPersonaJuridicaPrivadaConsejoJudicatura.getPrimerApellido() + " "
+                        + certificadoPersonaJuridicaPrivadaConsejoJudicatura.getSegundoApellido());
+                datosUsuario.setCargo(datosUsuario.getCargo());
+            }
+            if (certificadoConsejoJudicatura instanceof CertificadoPersonaJuridicaPublicaConsejoJudicatura certificadoPersonaJuridicaPublicaConsejoJudicatura) {
+                datosUsuario.setCedula(certificadoPersonaJuridicaPublicaConsejoJudicatura.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaJuridicaPublicaConsejoJudicatura.getNombres());
+                datosUsuario.setApellido(certificadoPersonaJuridicaPublicaConsejoJudicatura.getPrimerApellido() + " "
+                        + certificadoPersonaJuridicaPublicaConsejoJudicatura.getSegundoApellido());
+                datosUsuario.setCargo(certificadoPersonaJuridicaPublicaConsejoJudicatura.getCargo());
+            }
+            if (certificadoConsejoJudicatura instanceof CertificadoPersonaNaturalConsejoJudicatura certificadoPersonaNaturalConsejoJudicatura) {
+                datosUsuario.setCedula(certificadoPersonaNaturalConsejoJudicatura.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaNaturalConsejoJudicatura.getNombres());
+                datosUsuario.setApellido(certificadoPersonaNaturalConsejoJudicatura.getPrimerApellido() + " "
+                        + certificadoPersonaNaturalConsejoJudicatura.getSegundoApellido());
+            }
+            if (certificadoConsejoJudicatura instanceof CertificadoSelladoTiempo) {
+                datosUsuario.setCertificadoDigitalValido(true);
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoSecurityDataFactory.esCertificadoDeSecurityData(certificado)) {
+            Certificado certificadoSecurityData = CertificadoSecurityDataFactory.construir(certificado);
+            if (certificadoSecurityData instanceof CertificadoSecurityData) {
+                if (certificadoSecurityData instanceof CertificadoFuncionarioPublico certificadoFuncionarioPublico) {
+                    datosUsuario.setCedula(certificadoFuncionarioPublico.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoFuncionarioPublico.getNombres());
+                    datosUsuario.setApellido(certificadoFuncionarioPublico.getPrimerApellido() + " "
+                            + certificadoFuncionarioPublico.getSegundoApellido());
+                    datosUsuario.setCargo(certificadoFuncionarioPublico.getCargo());
+                    datosUsuario.setInstitucion(certificadoFuncionarioPublico.getInstitucion());
+                }
+                if (certificadoSecurityData instanceof CertificadoPersonaJuridica certificadoPersonaJuridica) {
+                    datosUsuario.setCedula(certificadoPersonaJuridica.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoPersonaJuridica.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaJuridica.getPrimerApellido() + " "
+                            + certificadoPersonaJuridica.getSegundoApellido());
+                    datosUsuario.setCargo(certificadoPersonaJuridica.getCargo());
+                }
+                if (certificadoSecurityData instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                    datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+                            + certificadoPersonaNatural.getSegundoApellido());
+                }
+                if (certificadoSecurityData instanceof CertificadoSelladoTiempo) {
+                    datosUsuario.setCertificadoDigitalValido(true);
+                }
+            }
+            //RESOLUCION-ARCOTEL-2024-0176
+            if (certificadoSecurityData instanceof CertificadoSubjSecurityDataImpl) {
+                if (certificadoSecurityData instanceof CertificadoMiembroEmpresa certificadoMiembroEmpresa) {
+                    datosUsuario.setCedula(certificadoMiembroEmpresa.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoMiembroEmpresa.getNombres());
+                    datosUsuario.setApellido(certificadoMiembroEmpresa.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoMiembroEmpresa.getCargo());
+                }
+                if (certificadoSecurityData instanceof CertificadoRepresentanteLegal certificadoRepresentanteLegal) {
+                    datosUsuario.setCedula(certificadoRepresentanteLegal.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoRepresentanteLegal.getNombres());
+                    datosUsuario.setApellido(certificadoRepresentanteLegal.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoRepresentanteLegal.getCargo());
+                }
+                if (certificadoSecurityData instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                    datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido());
+                }
+                if (certificadoSecurityData instanceof CertificadoSelloElectronico certificadoSelloElectronico) {
+                    datosUsuario.setCedula(certificadoSelloElectronico.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoSelloElectronico.getNombres());
+                    datosUsuario.setApellido(certificadoSelloElectronico.getPrimerApellido());
+                    datosUsuario.setCommonName(certificadoSelloElectronico.getCommonName());
+                }
+                if (certificadoSecurityData instanceof CertificadoSelladoTiempo) {
+                    datosUsuario.setCertificadoDigitalValido(true);
+                }
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoAnfAc18332Factory.esCertificadoDeAnfAc18332(certificado)) {
+            CertificadoAnfAc18332 certificadoAnfAc18332 = CertificadoAnfAc18332Factory.construir(certificado);
+            if (certificadoAnfAc18332 instanceof CertificadoFuncionarioPublico certificadoFuncionarioPublico) {
+                datosUsuario.setCedula(certificadoFuncionarioPublico.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoFuncionarioPublico.getNombres());
+                datosUsuario.setApellido(certificadoFuncionarioPublico.getPrimerApellido() + " "
+                        + certificadoFuncionarioPublico.getSegundoApellido());
+                datosUsuario.setCargo(certificadoFuncionarioPublico.getCargo());
+                datosUsuario.setInstitucion(certificadoFuncionarioPublico.getInstitucion());
+            }
+            if (certificadoAnfAc18332 instanceof CertificadoPersonaJuridica certificadoPersonaJuridica) {
+                datosUsuario.setCedula(certificadoPersonaJuridica.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaJuridica.getNombres());
+                datosUsuario.setApellido(certificadoPersonaJuridica.getPrimerApellido() + " "
+                        + certificadoPersonaJuridica.getSegundoApellido());
+                datosUsuario.setCargo(certificadoPersonaJuridica.getCargo());
+            }
+            if (certificadoAnfAc18332 instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+                        + certificadoPersonaNatural.getSegundoApellido());
+            }
+            if (certificadoAnfAc18332 instanceof CertificadoSelladoTiempo) {
+                datosUsuario.setCertificadoDigitalValido(true);
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoAnfAc37442Factory.esCertificadoDeAnfAc37442(certificado)) {
+            CertificadoAnfAc37442 certificadoAnfAc37442 = CertificadoAnfAc37442Factory.construir(certificado);
+            if (certificadoAnfAc37442 instanceof CertificadoFuncionarioPublico certificadoFuncionarioPublico) {
+                datosUsuario.setCedula(certificadoFuncionarioPublico.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoFuncionarioPublico.getNombres());
+                datosUsuario.setApellido(certificadoFuncionarioPublico.getPrimerApellido() + " "
+                        + certificadoFuncionarioPublico.getSegundoApellido());
+                datosUsuario.setCargo(certificadoFuncionarioPublico.getCargo());
+                datosUsuario.setInstitucion(certificadoFuncionarioPublico.getInstitucion());
+            }
+            if (certificadoAnfAc37442 instanceof CertificadoPersonaJuridica certificadoPersonaJuridica) {
+                datosUsuario.setCedula(certificadoPersonaJuridica.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaJuridica.getNombres());
+                datosUsuario.setApellido(certificadoPersonaJuridica.getPrimerApellido() + " "
+                        + certificadoPersonaJuridica.getSegundoApellido());
+                datosUsuario.setCargo(certificadoPersonaJuridica.getCargo());
+            }
+            if (certificadoAnfAc37442 instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+                        + certificadoPersonaNatural.getSegundoApellido());
+            }
+            if (certificadoAnfAc37442 instanceof CertificadoSelladoTiempo) {
+                datosUsuario.setCertificadoDigitalValido(true);
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoDigercicFactory.esCertificadoDigercic(certificado)) {
+            CertificadoDigercic certificadoDigercic = CertificadoDigercicFactory.construir(certificado);
+            if (certificadoDigercic instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                datosUsuario.setNombre(Utils.getCN(certificado));
+                datosUsuario.setApellido("");
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoUanatacaDataFactory.esCertificadoUanataca(certificado)) {
+            CertificadoUanataca certificadoUanataca = CertificadoUanatacaDataFactory.construir(certificado);
+            if (certificadoUanataca instanceof CertificadoMiembroEmpresaUanataca certificadoMiembroEmpresaUanataca) {
+                datosUsuario.setCedula(certificadoMiembroEmpresaUanataca.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoMiembroEmpresaUanataca.getNombres());
+                datosUsuario.setApellido(certificadoMiembroEmpresaUanataca.getPrimerApellido() + " "
+                        + certificadoMiembroEmpresaUanataca.getSegundoApellido());
+                datosUsuario.setCargo(certificadoMiembroEmpresaUanataca.getCargo());
+            }
+            if (certificadoUanataca instanceof CertificadoPersonaJuridicaPrivadaUanataca certificadoPersonaJuridicaUanataca) {
+                datosUsuario.setCedula(certificadoPersonaJuridicaUanataca.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaJuridicaUanataca.getNombres());
+                datosUsuario.setApellido(certificadoPersonaJuridicaUanataca.getPrimerApellido() + " "
+                        + certificadoPersonaJuridicaUanataca.getSegundoApellido());
+                datosUsuario.setCargo(datosUsuario.getCargo());
+            }
+            if (certificadoUanataca instanceof CertificadoPersonaNaturalUanataca certificadoPersonaNaturalU) {
+                datosUsuario.setCedula(certificadoPersonaNaturalU.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaNaturalU.getNombres());
+                datosUsuario.setApellido(certificadoPersonaNaturalU.getPrimerApellido() + " "
+                        + certificadoPersonaNaturalU.getSegundoApellido());
+            }
+            if (certificadoUanataca instanceof CertificadoRepresentanteLegalUanataca certificadoRepresentanteLegalUanataca) {
+                datosUsuario.setCedula(certificadoRepresentanteLegalUanataca.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoRepresentanteLegalUanataca.getNombres());
+                datosUsuario.setApellido(certificadoRepresentanteLegalUanataca.getPrimerApellido() + " "
+                        + certificadoRepresentanteLegalUanataca.getSegundoApellido());
+                datosUsuario.setCargo(certificadoRepresentanteLegalUanataca.getCargo());
+            }
+            if (certificadoUanataca instanceof CertificadoSelladoTiempo) {
+                datosUsuario.setCertificadoDigitalValido(true);
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoEclipsoftDataFactory.esCertificadoEclipsoft(certificado)) {
+            CertificadoEclipsoft certificadoEclipsoft = CertificadoEclipsoftDataFactory.construir(certificado);
+            if (certificadoEclipsoft instanceof CertificadoPersonalNaturalEclipsoft certificadoPersonalNaturalEclipsoft) {
+                datosUsuario.setCedula(certificadoPersonalNaturalEclipsoft.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonalNaturalEclipsoft.getNombres());
+                datosUsuario.setApellido(certificadoPersonalNaturalEclipsoft.getPrimerApellido() + " " + certificadoPersonalNaturalEclipsoft.getSegundoApellido());
+            }
+            if (certificadoEclipsoft instanceof CertificadoMiembroEmpresaEclipsoft certificadoMiembroEmpresaEclipsoft) {
+                datosUsuario.setCedula(certificadoMiembroEmpresaEclipsoft.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoMiembroEmpresaEclipsoft.getNombres());
+                datosUsuario.setApellido(certificadoMiembroEmpresaEclipsoft.getPrimerApellido() + " " + certificadoMiembroEmpresaEclipsoft.getSegundoApellido());
+                datosUsuario.setCargo(certificadoMiembroEmpresaEclipsoft.getCargo());
+            }
+            if (certificadoEclipsoft instanceof CertificadoRepresentanteLegalEclipsoft certificadoRepresentanteLegalEclipsoft) {
+                datosUsuario.setCedula(certificadoRepresentanteLegalEclipsoft.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoRepresentanteLegalEclipsoft.getNombres());
+                datosUsuario.setApellido(certificadoRepresentanteLegalEclipsoft.getPrimerApellido() + " " + certificadoRepresentanteLegalEclipsoft.getSegundoApellido());
+                datosUsuario.setCargo(certificadoRepresentanteLegalEclipsoft.getCargo());
+            }
+            if (certificadoEclipsoft instanceof CertificadoPersonaJuridicaPrivadaEclipsoft certificadoPersonaJuridicaPrivadaEclipsoft) {
+                datosUsuario.setCedula(certificadoPersonaJuridicaPrivadaEclipsoft.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaJuridicaPrivadaEclipsoft.getNombres());
+                datosUsuario.setApellido(certificadoPersonaJuridicaPrivadaEclipsoft.getPrimerApellido() + " " + certificadoPersonaJuridicaPrivadaEclipsoft.getSegundoApellido());
+                datosUsuario.setCargo(datosUsuario.getCargo());
+            }
+            if (certificadoEclipsoft instanceof CertificadoSelladoTiempo) {
+                datosUsuario.setCertificadoDigitalValido(true);
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoDatilDataFactory.esCertificadoDatil(certificado)) {
+            CertificadoDatil certificadoDatil = CertificadoDatilDataFactory.construir(certificado);
+            if (certificadoDatil instanceof CertificadoMiembroEmpresaDatil certificadoMiembroEmpresaDatil) {
+                datosUsuario.setCedula(certificadoMiembroEmpresaDatil.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoMiembroEmpresaDatil.getNombres());
+                datosUsuario.setApellido(certificadoMiembroEmpresaDatil.getPrimerApellido() + " " + certificadoMiembroEmpresaDatil.getSegundoApellido());
+                datosUsuario.setCargo(certificadoMiembroEmpresaDatil.getCargo());
+            }
+            if (certificadoDatil instanceof CertificadoPersonaJuridicaPrivadaDatil certificadoPersonaJuridicaPrivadaDatil) {
+                datosUsuario.setCedula(certificadoPersonaJuridicaPrivadaDatil.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaJuridicaPrivadaDatil.getNombres());
+                datosUsuario.setApellido(certificadoPersonaJuridicaPrivadaDatil.getPrimerApellido() + " "
+                        + certificadoPersonaJuridicaPrivadaDatil.getSegundoApellido());
+                datosUsuario.setCargo(certificadoPersonaJuridicaPrivadaDatil.getCargo());
+            }
+            if (certificadoDatil instanceof CertificadoRepresentanteLegalDatil certificadoRepresentanteLegalDatil) {
+                datosUsuario.setCedula(certificadoRepresentanteLegalDatil.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoRepresentanteLegalDatil.getNombres());
+                datosUsuario.setApellido(certificadoRepresentanteLegalDatil.getPrimerApellido() + " "
+                        + certificadoRepresentanteLegalDatil.getSegundoApellido());
+                datosUsuario.setCargo(certificadoRepresentanteLegalDatil.getCargo());
+            }
+            if (certificadoDatil instanceof CertificadoPersonaNaturalDatil certificadoPersonaNaturalDatil) {
+                datosUsuario.setCedula(certificadoPersonaNaturalDatil.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaNaturalDatil.getNombres());
+                datosUsuario.setApellido(certificadoPersonaNaturalDatil.getPrimerApellido() + " "
+                        + certificadoPersonaNaturalDatil.getSegundoApellido());
+            }
+            if (certificadoDatil instanceof CertificadoSelladoTiempo) {
+                datosUsuario.setCertificadoDigitalValido(true);
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoArgosDataFactory.esCertificadoArgosData(certificado)) {
+            CertificadoArgosData certificadoArgosData = CertificadoArgosDataFactory.construir(certificado);
+            if (certificadoArgosData instanceof CertificadoPersonaNaturalArgosData certificadoPersonaNatural) {
+                datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+                        + certificadoPersonaNatural.getSegundoApellido());
+            }
+            if (certificadoArgosData instanceof CertificadoRepresentanteLegalArgosData certificadoRepresentanteLegal) {
+                datosUsuario.setCedula(certificadoRepresentanteLegal.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoRepresentanteLegal.getNombres());
+                datosUsuario.setApellido(certificadoRepresentanteLegal.getPrimerApellido() + " "
+                        + certificadoRepresentanteLegal.getSegundoApellido());
+                datosUsuario.setCargo(certificadoRepresentanteLegal.getCargo());
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoLazzateDataFactory.esCertificadoLazzate(certificado)) {
+            CertificadoLazzate certificadoLazzate = CertificadoLazzateDataFactory.construir(certificado);
+            if (certificadoLazzate instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                if (certificadoPersonaNatural.getNombres().isEmpty()) {
+                    datosUsuario.setNombre(Utils.getCN(certificado));
+                    datosUsuario.setApellido("");
+                } else {
+                    datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+                            + certificadoPersonaNatural.getSegundoApellido());
+                }
+            }
+            if (certificadoLazzate instanceof CertificadoPersonaJuridica certificadoPersonaJuridica) {
+
+                datosUsuario.setCedula(certificadoPersonaJuridica.getCedulaPasaporte());
+                datosUsuario.setInstitucion(certificadoPersonaJuridica.getRazonSocial());
+                datosUsuario.setCargo(certificadoPersonaJuridica.getCargo());
+                if (certificadoPersonaJuridica.getNombres().isEmpty()) {
+                    datosUsuario.setNombre(Utils.getCN(certificado));
+                    datosUsuario.setApellido("");
+                } else {
+                    datosUsuario.setNombre(certificadoPersonaJuridica.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaJuridica.getPrimerApellido() + " "
+                            + certificadoPersonaJuridica.getSegundoApellido());
+                }
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoAlphaTechnologiesFactory.esCertificadoDeAlphaTechnologies(certificado)) {
+            Certificado certificadoAlphaTechnologies = CertificadoAlphaTechnologiesFactory.construir(certificado);
+            if (certificadoAlphaTechnologies instanceof CertificadoAlphaTechnologiesImpl) {
+                if (certificadoAlphaTechnologies instanceof CertificadoMiembroEmpresa certificadoMiembroEmpresa) {
+                    datosUsuario.setCedula(certificadoMiembroEmpresa.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoMiembroEmpresa.getNombres());
+                    datosUsuario.setApellido(certificadoMiembroEmpresa.getPrimerApellido() + " "
+                            + certificadoMiembroEmpresa.getSegundoApellido());
+                    datosUsuario.setCargo(certificadoMiembroEmpresa.getCargo());
+                }
+                if (certificadoAlphaTechnologies instanceof CertificadoPersonaJuridica certificadoPersonaJuridica) {
+                    datosUsuario.setCedula(certificadoPersonaJuridica.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoPersonaJuridica.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaJuridica.getPrimerApellido() + " "
+                            + certificadoPersonaJuridica.getSegundoApellido());
+                    datosUsuario.setCargo(certificadoPersonaJuridica.getCargo());
+                }
+                if (certificadoAlphaTechnologies instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                    datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+                            + certificadoPersonaNatural.getSegundoApellido());
+                }
+            }
+            //RESOLUCION-ARCOTEL-2024-0176
+            if (certificadoAlphaTechnologies instanceof CertificadoSubjAlphaTechnologiesImpl) {
+                if (certificadoAlphaTechnologies instanceof CertificadoMiembroEmpresa certificadoMiembroEmpresa) {
+                    datosUsuario.setCedula(certificadoMiembroEmpresa.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoMiembroEmpresa.getNombres());
+                    datosUsuario.setApellido(certificadoMiembroEmpresa.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoMiembroEmpresa.getCargo());
+                }
+                if (certificadoAlphaTechnologies instanceof CertificadoRepresentanteLegal certificadoRepresentanteLegal) {
+                    datosUsuario.setCedula(certificadoRepresentanteLegal.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoRepresentanteLegal.getNombres());
+                    datosUsuario.setApellido(certificadoRepresentanteLegal.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoRepresentanteLegal.getCargo());
+                }
+                if (certificadoAlphaTechnologies instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                    datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido());
+                }
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoCorpNewBestDataFactory.esCertificadoCorpNewBest(certificado)) {
+            CertificadoCorpNewBest certificadoCorpNewBest = CertificadoCorpNewBestDataFactory.construir(certificado);
+            if (certificadoCorpNewBest instanceof CertificadoPersonaJuridica certificadoPersonaJuridica) {
+                datosUsuario.setCedula(certificadoPersonaJuridica.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaJuridica.getNombres());
+                datosUsuario.setApellido(certificadoPersonaJuridica.getPrimerApellido() + " "
+                        + certificadoPersonaJuridica.getSegundoApellido());
+                datosUsuario.setCargo(certificadoPersonaJuridica.getCargo());
+            }
+            if (certificadoCorpNewBest instanceof CertificadoMiembroEmpresa certificadoMiembroEmpresa) {
+                datosUsuario.setCedula(certificadoMiembroEmpresa.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoMiembroEmpresa.getNombres());
+                datosUsuario.setApellido(certificadoMiembroEmpresa.getPrimerApellido() + " "
+                        + certificadoMiembroEmpresa.getSegundoApellido());
+                datosUsuario.setCargo(certificadoMiembroEmpresa.getCargo());
+            }
+            if (certificadoCorpNewBest instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+                        + certificadoPersonaNatural.getSegundoApellido());
+            }
+            if (certificadoCorpNewBest instanceof CertificadoSelladoTiempo) {
+                datosUsuario.setCertificadoDigitalValido(true);
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        if (CertificadoFirmaSeguraFactory.esCertificadoDeFirmaSegura(certificado)) {
+            CertificadoFirmaSegura certificadoFirmaSegura = CertificadoFirmaSeguraFactory.construir(certificado);
+            if (certificadoFirmaSegura instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+                        + certificadoPersonaNatural.getSegundoApellido());
+            }
+            if (certificadoFirmaSegura instanceof CertificadoRepresentanteLegalFirmaSegura certificadoRepresentanteLegal) {
+                datosUsuario.setCedula(certificadoRepresentanteLegal.getCedulaPasaporte());
+                datosUsuario.setNombre(certificadoRepresentanteLegal.getNombres());
+                datosUsuario.setApellido(certificadoRepresentanteLegal.getPrimerApellido() + " "
+                        + certificadoRepresentanteLegal.getSegundoApellido());
+                datosUsuario.setCargo(certificadoRepresentanteLegal.getCargo());
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        //RESOLUCION-ARCOTEL-2024-0176
+        if (CertificadoLetmiFactory.esCertificadoDeLetmi(certificado)) {
+            Certificado certificadoLetmi = CertificadoLetmiFactory.construir(certificado);
+            if (certificadoLetmi instanceof CertificadoSubjLetmiImpl) {
+                if (certificadoLetmi instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                    datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido());
+                }
+                if (certificadoLetmi instanceof CertificadoMiembroEmpresa certificadoMiembroEmpresa) {
+                    datosUsuario.setCedula(certificadoMiembroEmpresa.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoMiembroEmpresa.getNombres());
+                    datosUsuario.setApellido(certificadoMiembroEmpresa.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoMiembroEmpresa.getCargo());
+                }
+                if (certificadoLetmi instanceof CertificadoRepresentanteLegal certificadoRepresentanteLegal) {
+                    datosUsuario.setCedula(certificadoRepresentanteLegal.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoRepresentanteLegal.getNombres());
+                    datosUsuario.setApellido(certificadoRepresentanteLegal.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoRepresentanteLegal.getCargo());
+                }
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        //RESOLUCION-ARCOTEL-2024-0176
+        if (CertificadoAppFirmasFactory.esCertificadoDeAppFirmas(certificado)) {
+            Certificado certificadoAppFirmas = CertificadoAppFirmasFactory.construir(certificado);
+            if (certificadoAppFirmas instanceof CertificadoSubjAppFirmasImpl) {
+                if (certificadoAppFirmas instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                    datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido());
+                }
+                if (certificadoAppFirmas instanceof CertificadoMiembroEmpresa certificadoMiembroEmpresa) {
+                    datosUsuario.setCedula(certificadoMiembroEmpresa.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoMiembroEmpresa.getNombres());
+                    datosUsuario.setApellido(certificadoMiembroEmpresa.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoMiembroEmpresa.getCargo());
+                }
+                if (certificadoAppFirmas instanceof CertificadoRepresentanteLegal certificadoRepresentanteLegal) {
+                    datosUsuario.setCedula(certificadoRepresentanteLegal.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoRepresentanteLegal.getNombres());
+                    datosUsuario.setApellido(certificadoRepresentanteLegal.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoRepresentanteLegal.getCargo());
+                }
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        //RESOLUCION-ARCOTEL-2024-0176
+        if (CertificadoDarkcamFactory.esCertificadoDeDarkcam(certificado)) {
+            Certificado certificadoDarkcam = CertificadoDarkcamFactory.construir(certificado);
+            if (certificadoDarkcam instanceof CertificadoSubjDarkcamImpl) {
+                if (certificadoDarkcam instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+                    datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+                    datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido());
+                }
+                if (certificadoDarkcam instanceof CertificadoMiembroEmpresa certificadoMiembroEmpresa) {
+                    datosUsuario.setCedula(certificadoMiembroEmpresa.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoMiembroEmpresa.getNombres());
+                    datosUsuario.setApellido(certificadoMiembroEmpresa.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoMiembroEmpresa.getCargo());
+                    datosUsuario.setInstitucion(certificadoMiembroEmpresa.getRazonSocial());
+                }
+                if (certificadoDarkcam instanceof CertificadoRepresentanteLegal certificadoRepresentanteLegal) {
+                    datosUsuario.setCedula(certificadoRepresentanteLegal.getCedulaPasaporte());
+                    datosUsuario.setNombre(certificadoRepresentanteLegal.getNombres());
+                    datosUsuario.setApellido(certificadoRepresentanteLegal.getPrimerApellido());
+                    datosUsuario.setCargo(certificadoRepresentanteLegal.getCargo());
+                    datosUsuario.setInstitucion(certificadoRepresentanteLegal.getRazonSocial());
+                }
+            }
+            datosUsuario.setCertificadoDigitalValido(true);
+            return datosUsuario;
+        }
+
+        //RESOLUCION-ARCOTEL-2024-0176
+//        if (CertificadoPrimeCoreLatDataFactory.esCertificadoPrimeCoreLat(certificado)) {
+//            CertificadoPrimeCoreLat certificadoPrimeCoreLat = CertificadoPrimeCoreLatDataFactory.construir(certificado);
+//            if (certificadoPrimeCoreLat instanceof CertificadoPersonaNatural certificadoPersonaNatural) {
+//                datosUsuario.setCedula(certificadoPersonaNatural.getCedulaPasaporte());
+//                if (certificadoPersonaNatural.getNombres().isEmpty()) {
+//                    datosUsuario.setNombre(Utils.getCN(certificado));
+//                    datosUsuario.setApellido("");
+//                } else {
+//                    datosUsuario.setNombre(certificadoPersonaNatural.getNombres());
+//                    datosUsuario.setApellido(certificadoPersonaNatural.getPrimerApellido() + " "
+//                            + certificadoPersonaNatural.getSegundoApellido());
+//                }
+//            }
+//            if (certificadoPrimeCoreLat instanceof CertificadoPersonaJuridica certificadoPersonaJuridica) {
+//
+//                datosUsuario.setCedula(certificadoPersonaJuridica.getCedulaPasaporte());
+//                datosUsuario.setInstitucion(certificadoPersonaJuridica.getRazonSocial());
+//                datosUsuario.setCargo(certificadoPersonaJuridica.getCargo());
+//                if (certificadoPersonaJuridica.getNombres().isEmpty()) {
+//                    datosUsuario.setNombre(Utils.getCN(certificado));
+//                    datosUsuario.setApellido("");
+//                } else {
+//                    datosUsuario.setNombre(certificadoPersonaJuridica.getNombres());
+//                    datosUsuario.setApellido(certificadoPersonaJuridica.getPrimerApellido() + " "
+//                            + certificadoPersonaJuridica.getSegundoApellido());
+//                }
+//            }
+//            datosUsuario.setCertificadoDigitalValido(true);
+//            return datosUsuario;
+//        }
+//
+        return null;
+    }
+}

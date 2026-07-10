@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: demo-firma-digital
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.firmar: DEBUG
